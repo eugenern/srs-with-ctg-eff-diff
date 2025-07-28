@@ -1,5 +1,5 @@
 # srs-with-ctg-eff-diff
-Implement the Simple Rating System algorithm and replace raw point differential with CleaningTheGlass's Efficiency Differential as input
+Implement the Simple Rating System algorithm and change its input from raw point differential to CleaningTheGlass's Efficiency Differential
 
 Links describing the concepts used:
 
