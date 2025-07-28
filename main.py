@@ -1,16 +1,19 @@
 from dataclasses import dataclass
-from numpy.linalg import lstsq # use scipy or numpy?
+from numpy.linalg import lstsq
 
 @dataclass
 class TeamInfo:
     name: str
     pt_diff = 0
     ctg_eff_diff = 0
-    gp_vs_teams: list
+    gp_with_teams: list
 
     def num_games(self) -> int:
-        # WARNING: do not use this method before indices has been defined
-        return -self.gp_vs_teams[indices[self.name]]
+        try:
+            return self.gp_with_teams[indices[self.name]]
+        except NameError:
+            print("WARNING: code accessed TeamInfo.num_games() before it was ready. Assuming 0")
+            return 0
 
 LINALG_ERROR_MSG = '\n'.join((
     "Failed to properly solve linear system:",
@@ -27,7 +30,7 @@ with open('game_log.csv', 'r', encoding="utf-8") as results_file:
     NUM_TEAMS = len(teams)
     indices = {team: index for index, team in enumerate(sorted(teams))}
     teaminfos = list(TeamInfo(team, [0] * NUM_TEAMS) for team in sorted(teams))
-    sched = [teaminfo.gp_vs_teams for teaminfo in teaminfos]
+    sched = [teaminfo.gp_with_teams for teaminfo in teaminfos]
 
     results_file.seek(0)
     for result in results_file:
@@ -38,14 +41,16 @@ with open('game_log.csv', 'r', encoding="utf-8") as results_file:
         v_teaminfo.pt_diff += visitor_score - home_score
         h_teaminfo.pt_diff += home_score - visitor_score
 
-        v_teaminfo.gp_vs_teams[h_ind] += 1
-        v_teaminfo.gp_vs_teams[v_ind] -= 1
-        h_teaminfo.gp_vs_teams[v_ind] += 1
-        h_teaminfo.gp_vs_teams[h_ind] -= 1
+        v_teaminfo.gp_with_teams[v_ind] += 1
+        h_teaminfo.gp_with_teams[h_ind] += 1
+        # negate #s of games played vs other teams
+        # b/c in the original formula they were on the other side of the equations
+        v_teaminfo.gp_with_teams[h_ind] -= 1
+        h_teaminfo.gp_with_teams[v_ind] -= 1
 
-negated_pt_diffs = [-teaminfo.pt_diff for teaminfo in teaminfos]
+pt_diffs = [teaminfo.pt_diff for teaminfo in teaminfos]
 try:
-    srs_vals = lstsq(sched, negated_pt_diffs)
+    srs_vals = lstsq(sched, pt_diffs)
     if srs_vals[1].size > 0 or srs_vals[2] != NUM_TEAMS - 1:
         raise ValueError(LINALG_ERROR_MSG.format(srs_vals[1], NUM_TEAMS - 1, srs_vals[2]))
 except ValueError as e:
@@ -70,14 +75,14 @@ with open('league_four_factors_7_27_2025.csv', 'r', encoding="utf-8") as ctg_fil
                     teaminfo.ctg_eff_diff = float(diff)
                     break
             if not found:
-                raise ValueError(f"Could not figure out which team matches {team}.")
+                raise ValueError(f"Code could not figure out which team matches {team}.")
         except ValueError as e:
             # maybe in the future do more than just print the msg
             print(e)
 
-negated_ctg = [-teaminfo.ctg_eff_diff * teaminfo.num_games() for teaminfo in teaminfos]
+ctg = [teaminfo.ctg_eff_diff * teaminfo.num_games() for teaminfo in teaminfos]
 try:
-    srs_ctg_vals = lstsq(sched, negated_ctg)
+    srs_ctg_vals = lstsq(sched, ctg)
     if srs_ctg_vals[1].size > 0 or srs_ctg_vals[2] != NUM_TEAMS - 1:
         raise ValueError(LINALG_ERROR_MSG.format(srs_ctg_vals[1], NUM_TEAMS - 1, srs_ctg_vals[2]))
 except ValueError as e:
