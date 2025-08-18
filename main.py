@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from numpy.linalg import lstsq
 
+DEC_2 = "6.2f"
+
 @dataclass
 class TeamInfo:
     name: str
@@ -28,6 +30,7 @@ with open('game_log.csv', 'r', encoding="utf-8") as results_file:
     for result in results_file:
         teams |= set(result.split(',')[2:5:2])
     NUM_TEAMS = len(teams)
+    MAX_NAME_LEN = max(map(len, teams))
     indices = {team: index for index, team in enumerate(sorted(teams))}
     teaminfos = list(TeamInfo(team, [0] * NUM_TEAMS) for team in sorted(teams))
     sched = [teaminfo.gp_with_teams for teaminfo in teaminfos]
@@ -58,7 +61,7 @@ except ValueError as e:
     print(e)
 
 for teaminfo, srs in sorted(zip(teaminfos, srs_vals[0]), key=lambda x: x[1], reverse=True):
-    print(teaminfo.name, f"{teaminfo.pt_diff / teaminfo.num_games():.2f}", f"{srs:.2f}")
+    print(f"{teaminfo.name:>{MAX_NAME_LEN}}", f"{teaminfo.pt_diff / teaminfo.num_games():{DEC_2}}", f"{srs:{DEC_2}}")
 print()
 
 with open('league_four_factors_7_27_2025.csv', 'r', encoding="utf-8") as ctg_file:
@@ -90,4 +93,4 @@ except ValueError as e:
     print(e)
 
 for teaminfo, srs in sorted(zip(teaminfos, srs_ctg_vals[0]), key=lambda x: x[1], reverse=True):
-    print(teaminfo.name, f"{teaminfo.ctg_eff_diff:.2f}", f"{srs:.2f}")
+    print(f"{teaminfo.name:>{MAX_NAME_LEN}}", f"{teaminfo.ctg_eff_diff:{DEC_2}}", f"{srs:{DEC_2}}")
