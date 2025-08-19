@@ -23,6 +23,22 @@ LINALG_ERROR_MSG = '\n'.join((
     "Expected rank to be {}, got {}"
 ))
 
+def choose_names_len():
+    try:
+        names_len = MAX_NAME_LEN
+    except NameError:
+        print("WARNING: code accessed MAX_NAME_LEN before it was ready. Assuming 22")
+        names_len = 22
+
+    return names_len
+
+def print_table_header():
+    rtg_col_len = int(DEC_2[0]) + 1
+    print(f"{'Team':^{choose_names_len()}}", f"{'Raw':^{rtg_col_len}}", f"{'SRS':^{rtg_col_len}}")
+
+def print_team_ratings(name, original_rtg, srs_rtg):
+    print(f"{name:>{choose_names_len()}}", f"{original_rtg:{DEC_2}}", f"{srs_rtg:{DEC_2}}")
+
 with open('game_log.csv', 'r', encoding="utf-8") as results_file:
     # how to get list of teams: from API or an extra preliminary iteration thru game results?
     # API probably makes more sense assuming it's consistent with the team names it uses
@@ -37,7 +53,9 @@ with open('game_log.csv', 'r', encoding="utf-8") as results_file:
 
     results_file.seek(0)
     for result in results_file:
-        visitor, visitor_score, home, home_score = (int(x) if x.isdigit() else x for x in result.split(',')[2:6])
+        visitor, visitor_score, home, home_score = (
+            int(x) if x.isdigit() else x for x in result.split(',')[2:6]
+        )
         v_ind, h_ind = indices[visitor], indices[home]
         v_teaminfo, h_teaminfo = teaminfos[v_ind], teaminfos[h_ind]
 
@@ -60,8 +78,9 @@ except ValueError as e:
     # maybe in the future do more than just print the msg
     print(e)
 
+print_table_header()
 for teaminfo, srs in sorted(zip(teaminfos, srs_vals[0]), key=lambda x: x[1], reverse=True):
-    print(f"{teaminfo.name:>{MAX_NAME_LEN}}", f"{teaminfo.pt_diff / teaminfo.num_games():{DEC_2}}", f"{srs:{DEC_2}}")
+    print_team_ratings(teaminfo.name, teaminfo.pt_diff / teaminfo.num_games(), srs)
 print()
 
 with open('league_four_factors_7_27_2025.csv', 'r', encoding="utf-8") as ctg_file:
@@ -92,5 +111,6 @@ except ValueError as e:
     # maybe in the future do more than just print the msg
     print(e)
 
+print_table_header()
 for teaminfo, srs in sorted(zip(teaminfos, srs_ctg_vals[0]), key=lambda x: x[1], reverse=True):
-    print(f"{teaminfo.name:>{MAX_NAME_LEN}}", f"{teaminfo.ctg_eff_diff:{DEC_2}}", f"{srs:{DEC_2}}")
+    print_team_ratings(teaminfo.name, teaminfo.ctg_eff_diff, srs)
